@@ -126,11 +126,17 @@ export default function App() {
     
     try {
       const win = window as any;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 300 seconds timeout
+
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
@@ -176,9 +182,13 @@ export default function App() {
       
       // Small delay to show the last processing message
       setTimeout(() => setStep('results'), 1000);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert(error instanceof Error ? error.message : 'Ocorreu um erro ao processar seu orçamento. Tente novamente.');
+      if (error.name === 'AbortError') {
+        alert('A busca demorou muito e foi cancelada. Tente novamente com menos itens ou aguarde alguns instantes.');
+      } else {
+        alert(error instanceof Error ? error.message : 'Ocorreu um erro ao processar seu orçamento. Tente novamente.');
+      }
       setStep('search');
     }
   };
@@ -256,7 +266,7 @@ export default function App() {
                       <div className="flex-1">
                         <p className="font-bold text-sm text-gray-900">{offer.productName}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <p className="text-xs font-semibold text-gray-700">{offer.seller}</p>
+                          <p className="text-xs font-semibold text-gray-700">{offer.seller || 'Loja Online'}</p>
                           <span className="text-gray-300">•</span>
                           {offer.freeShipping ? (
                             <p className="text-xs text-emerald-600 font-bold">Frete Grátis</p>

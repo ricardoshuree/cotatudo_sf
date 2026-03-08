@@ -180,13 +180,26 @@ async function startServer() {
       const model = "gemini-3-flash-preview";
 
       // Helper para retry com exponential backoff
-      const generateContentWithRetry = async (params: any, retries = 3, delay = 1000): Promise<any> => {
+      const generateContentWithRetry = async (params: any, retries = 5, delay = 2000): Promise<any> => {
         try {
           return await ai.models.generateContent(params);
         } catch (error: any) {
-          if (retries > 0 && error.status === 503) {
-            console.warn(`[Backend] Erro 503, tentando novamente em ${delay}ms... (${retries} tentativas restantes)`);
-            await new Promise(resolve => setTimeout(resolve, delay));
+          // Verifica se é um erro de rate limit (429) ou serviço indisponível (503)
+          const isRateLimit = error.status === 429 || (error.message && error.message.includes("429"));
+          const isServiceUnavailable = error.status === 503 || (error.message && error.message.includes("503"));
+
+          if (retries > 0 && (isRateLimit || isServiceUnavailable)) {
+            // Tenta extrair o retryDelay da mensagem de erro se disponível
+            let retryDelay = delay;
+            if (isRateLimit) {
+              const match = error.message.match(/Please retry in (\d+\.?\d*)s/);
+              if (match) {
+                retryDelay = Math.ceil(parseFloat(match[1]) * 1000) + 1000; // Add 1s buffer
+              }
+            }
+
+            console.warn(`[Backend] Erro ${error.status || 'API'}, tentando novamente em ${retryDelay}ms... (${retries} tentativas restantes)`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
             return generateContentWithRetry(params, retries - 1, delay * 2);
           }
           throw error;
