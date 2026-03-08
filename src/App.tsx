@@ -255,13 +255,14 @@ export default function App() {
                       <img src={offer.imageUrl} alt={offer.productName} className="w-12 h-12 object-contain" referrerPolicy="no-referrer" />
                       <div className="flex-1">
                         <p className="font-bold text-sm text-gray-900">{offer.productName}</p>
-                        <div className="flex items-center gap-4 mt-1">
-                          <p className="text-xs text-gray-500">{offer.site}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs font-semibold text-gray-700">{offer.seller}</p>
+                          <span className="text-gray-300">•</span>
                           {offer.freeShipping ? (
                             <p className="text-xs text-emerald-600 font-bold">Frete Grátis</p>
                           ) : (
                             <p className="text-xs text-amber-600 font-bold">
-                              {offer.shippingDays ? `${offer.shippingDays} dias` : 'Frete Pago'}
+                              {offer.deliveryDays !== undefined ? `${offer.deliveryDays} dias` : 'Frete Pago'}
                             </p>
                           )}
                         </div>
